@@ -1,5 +1,9 @@
 #!/usr/bin/env groovy
-def list = ["dir1", "dir2", "dir3", "dir4", "dir4v2", "dir5", "dir5v2", "dir6", "dir7"]
+def list = [
+    "dir1",
+    "dir2",
+    "dir3"
+]
 def matches 
 def matchesv2
 def v2dir
@@ -25,7 +29,7 @@ pipeline {
                             echo "branchname: ${BRANCH_NAME}"
                             if("$matches"!="false") {
                                 stage(list[i] + ' trigger'){
-                                    def scan = "../${list[i]}"
+                                    def scan = "${list[i]}"
                                     echo "scanning: ${scan}"
                                     // def trigger = "../${list[i]}/${BRANCH_NAME}"
                                     script {
