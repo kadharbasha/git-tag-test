@@ -1,9 +1,5 @@
 #!/usr/bin/env groovy
-def list = [
-    "dir1",
-    "dir2",
-    "dir3"
-]
+def list = ["dir1", "dir2", "dir3", "dir4", "dir4v2", "dir5", "dir5v2", "dir6", "dir7"]
 def matches 
 def matchesv2
 def v2dir
