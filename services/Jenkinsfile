@@ -33,7 +33,7 @@ pipeline {
                                     echo "scanning: ${scan}"
                                     // def trigger = "../${list[i]}/${BRANCH_NAME}"
                                     script {
-                                        build job: "${scan}", propagate: false, wait: false
+                                        build job: "services/dir3", propagate: false, wait: false
                                         sleep 10
                                     }
                                 }
