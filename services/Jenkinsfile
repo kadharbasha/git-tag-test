@@ -29,7 +29,7 @@ pipeline {
                             echo "branchname: ${BRANCH_NAME}"
                             if("$matches"!="false") {
                                 stage(list[i] + ' trigger'){
-                                    def scan = "/${list[i]}"
+                                    def scan = "../${list[i]}"
                                     echo "scanning: ${scan}"
                                     // def trigger = "../${list[i]}/${BRANCH_NAME}"
                                     script {

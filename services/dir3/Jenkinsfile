@@ -1,0 +1,47 @@
+#!/usr/bin/env groovy
+def dir3_IMAGE_TAG= "7.18.0"
+def dir3_ECR_REPOSITORY= "prod-dir3"
+pipeline {
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '6'))
+    }
+    agent any
+    stages {
+         stage('dir3 go build') {
+            when {
+                expression {
+                    matches = sh(returnStatus: true, script: "git diff --name-only HEAD~1 | sort -u | awk -F/ {'print \$2'} | uniq | grep -x 'dir3'")
+                    return !matches
+                }
+            }
+            steps {
+                script {
+                    dir ("services/dir3/build") {
+                     sh "go clean -modcache"
+                     sh "go build -v main.go"
+                    } 
+                }
+                script {
+                    dir ("services/dir3") {
+                    sh "docker build -f build/Dockerfile ."
+                    }
+                }
+            }
+        }
+        stage ('dir3 docker build') {
+            when {
+                expression {
+                    matches = sh(returnStatus: true, script: "git diff --name-only HEAD~1 | sort -u | awk -F/ {'print \$2'} | uniq | grep -x 'dir3'")
+                    return !matches
+                }
+            branch 'dev'
+            }
+            steps {
+                dir ("services/dir3") {
+                sh " docker build -f build/Dockerfile  -t $dir3_ECR_REPOSITORY:$dir3_IMAGE_TAG ."
+                // sh """docker push $dir3_ECR_REPOSITORY:$dir3_IMAGE_TAG """
+                }
+            }
+        }
+    }    
+}
