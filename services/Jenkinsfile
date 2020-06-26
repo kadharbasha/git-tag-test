@@ -71,14 +71,14 @@ pipeline {
         sh script: "sudo rm -rf /home/jenkins/app04d1/dist/test/*", label: "Clean EFS Folder"
         sh script: "sudo aws s3 cp s3://${s3BucketName}/ACCESS-PORTAL-DEV/dist_artifacts_latest/apps/ /home/jenkins/app04d1/dist/test/apps/ --recursive", label: "Copy from Destination to EFS"
       }
-    }
+    }*/
     stage('Copy Artifact to Staging') {
       when {
         anyOf {
           branch 'test-qa1'
           // expression { BRANCH_NAME ==~ /^\d+\.\d+\.(\d+|x)$/ }
         }
-      }*/
+      }
       steps {
         script {
         sh "ls -la"
@@ -101,3 +101,4 @@ pipeline {
       cleanWs()
     }
   }
+}
