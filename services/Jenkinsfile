@@ -4,6 +4,7 @@
 // def latestTag= "git tag --sort=committerdate | tail -1"
 
 pipeline {
+  agent any
   /*agent {
     label 'access-portal-spot-slave'
   }
