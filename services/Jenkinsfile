@@ -73,7 +73,7 @@ pipeline {
         sh script: "sudo aws s3 cp s3://${s3BucketName}/ACCESS-PORTAL-DEV/dist_artifacts_latest/apps/ /home/jenkins/app04d1/dist/test/apps/ --recursive", label: "Copy from Destination to EFS"
       }
     }*/
-    stage('Copy Artifact to Staging') {
+    /*stage('Copy Artifact to Staging') {
       when {
         anyOf {
           branch 'master'
@@ -96,7 +96,7 @@ pipeline {
                 }
 
       }
-    }
+    }*/
     stage('release') {
      when {
        tag 'v1.1.*'
