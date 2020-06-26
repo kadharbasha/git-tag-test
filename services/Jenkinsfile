@@ -99,7 +99,7 @@ pipeline {
     }*/
     stage('release') {
      when {
-       tag 'v1.1.5'
+       tag 'release-*'
      }
      steps {
        echo "Building $BRANCH_NAME"
