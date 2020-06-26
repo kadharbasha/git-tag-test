@@ -84,7 +84,7 @@ pipeline {
       steps {
         script {
         sh "ls -la"
-        def version = sh(returnStdout: true, script: "git tag --sort version:refname | tail -1")
+        def version = sh(returnStdout: true, script: "git tag version:refname | tail -1")
         echo 'using new version ' +  version
         // def latestTAG= "git describe --tags 'git rev-list --tags --max-count=1'"
         // sh "echo ${latestTag}"
