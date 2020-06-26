@@ -1,152 +1,104 @@
 #!/usr/bin/env groovy
 
-def list = ["dir1", "dir2", "dir3", "dir4", "dir4v2", "dir5", "dir5v2", "dir6", "dir7"]
-def map = [
-    dir1: "1.0.0", 
-    dir2: "2.0.1", 
-    dir3: "3.2.1",
-    dir4: "1.2.3",
-    dir5: "4.5.6",
-    dir6: "7.8.9",
-    dir7: "6.8.7",
-    dir4v2: "4.2.1",
-    dir5v2: "5.2.1"
-]
-def tagname
-def tagnumber
-def matches 
-def matchesv2
-def v2dir
-def redir
+//def s3BucketName = "ss01-prod-jenkins-bucket"
+// def latestTag= "git tag --sort=committerdate | tail -1"
 
 pipeline {
-    options {
-        buildDiscarder(logRotator(numToKeepStr: '6'))
+  /*agent {
+    label 'access-portal-spot-slave'
+  }
+  environment {
+    WORKSPACE = '/home/jenkins/workspace/ACCESS-PORTAL'
+  }*/
+  options {
+    buildDiscarder(logRotator(daysToKeepStr: '30', artifactDaysToKeepStr: '30'))
+  }
+  stages {
+    /*stage('Rebase Pull Request') {
+      steps {
+        nodejs(nodeJSInstallationName: 'node') {
+          sh script: "node tools/scripts/rebase-pr.js $BRANCH_NAME"
+        }
+      }
     }
-    agent none
-    stages {
-        stage('Preparing updated services') {
-            agent any
-            steps {
-                script {
-                    for(int i=0; i < list.size(); i++) {
-                        if("${list[i]}"!="dir4v2" && "${list[i]}"!="dir5v2"){
-                            matches = sh (
-                                script: "git diff --name-only HEAD~1 | sort -u | awk -F/ {'print \$2,\$3'} | uniq | grep -x '${list[i]} build'", returnStatus: true
-                            ) == 0
-                            echo "Matches: $matches"
-                            echo "Service: ${list[i]}"
-                            if("$matches"!="false"){
-                                stage(list[i] + ' build'){
-                                    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE'){
-                                        script{
-                                            dir ("services/${list[i]}"){
-                                                sh "pwd"
-                                                sh "ls -la"
-                                            }
-                                        }
-                                        dir ("services/${list[i]}"){
-                                            sh "pwd"
-                                            sh "ls -la"
-                                            sh "docker build --add-host=stash.nov.com:10.23.20.22 -f build/dockerfile ."
-                                        }
-                                    }
-                                }
-                                //if("${BRANCH_NAME}" == "dev"){
-                                    stage(list[i] + '  docker push'){
-                                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE'){
-                                            def noSpec = "${list[i]}".toString().replaceAll("[^a-zA-Z0-9 ]+","")
-                                            for (element in map) {
-                                                if("${element.key}" == "${noSpec}"){
-                                                    tagname = "${element.key}"
-                                                    tagnumber = "${element.value}"
-                                                    break
-                                                }
-                                            }
-                                            dir ("services/${list[i]}") {
-                                                if(("${list[i]}"!="dir6") && ("${list[i]}"!="dir7")) {
-                                                    echo "Tag Name: ${tagname}"
-                                                    echo "Tag Number: ${tagnumber}"
-                                                    sh "pwd"
-                                                    sh "ls -la"
-                                                    sh "docker build -f build/dockerfile -t 31147669.dkr.ecr.us-east-1.amazonaws.com/ss01-prod-${tagname}:${tagnumber} ."
-                                                    sh "docker images"
-                                                }
-                                                else{
-                                                    echo "Tag Name: ${tagname}"
-                                                    echo "Tag Number: ${tagnumber}"
-                                                    sh "pwd"
-                                                    sh "ls -la"
-                                                    sh "docker build -f build/dockerfile -t 31147669.dkr.ecr.us-east-1.amazonaws.com/ss01-prod-maxapi-${tagname}-intel:${tagnumber} ."
-                                                    sh "docker images"
-                                                    sh "docker build -f build/dockerfile -t 31147669.dkr.ecr.us-east-1.amazonaws.com/ss01-prod-maxapi-${tagname}-arm32:${tagnumber} ."
-                                                    sh "docker images"
-                                                }
-                                            }
-                                        }
-                                    }
-                                //}
-                            }
-                        }
-                        else{
-                            redir = "${list[i]}".toString().replaceAll("v2","")
-                            matchesv2 = sh (
-                                script: "git diff --name-only HEAD~1 | sort -u | awk -F/ {'print \$2,\$3'} | uniq | grep -x '${redir} v2'", returnStatus: true
-                            ) == 0
-                            echo "Matchesv2: $matchesv2"
-                            echo "Service: ${list[i]}"
-                            echo "service dir of v2: ${redir}"
-                            v2dir = "${list[i]}".toString().replaceAll("v2","")
-                            echo "v2 dir: services/${v2dir}/v2"
-                            if("$matchesv2"!="false"){
-                                stage(list[i] + ' build'){
-                                    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE'){
-                                        script{
-                                            dir ("services/${v2dir}"){
-                                                sh "pwd"
-                                                sh "ls -la"
-                                            }
-                                        }
-                                        dir ("services/${v2dir}/v2"){
-                                            sh "pwd"
-                                            sh "ls -la"
-                                            sh "docker build --add-host=stash.nov.com:10.23.20.22 -f build/dockerfile ."
-                                        }
-                                    }
-                                }
-                                //if("${BRANCH_NAME}" == "dev"){
-                                    stage(list[i] + '  docker push'){
-                                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE'){
-                                            def noSpec = "${list[i]}".toString().replaceAll("[^a-zA-Z0-9 ]+","")
-                                            for (element in map) {
-                                                if("${element.key}" == "${noSpec}"){
-                                                    tagname = "${element.key}"
-                                                    tagnumber = "${element.value}"
-                                                    break
-                                                }
-                                            }
-                                            dir ("services/${v2dir}/v2") {
-                                                echo "${tagname}"
-                                                echo "${tagnumber}"
-                                                sh "pwd"
-                                                sh "ls -la"
-                                                sh "docker build -f build/dockerfile -t 31147669.dkr.ecr.us-east-1.amazonaws.com/ss01-prod-maxapi-${tagname}-intel:${tagnumber} ."
-                                                sh "docker build -f build/dockerfile -t 31147669.dkr.ecr.us-east-1.amazonaws.com/ss01-prod-maxapi-${tagname}-arm32:${tagnumber} ."
-                                                sh "docker images"
-                                            }
-                                        }
-                                    }
-                                //}
-                            }
-                        }
-                    }
-                }
-            }
-            post{
-                always{
-                    cleanWs()
-                }
-            }
-        }        
+    stage('Install Node Modules') {
+      steps {
+        nodejs(nodeJSInstallationName: 'node') {
+          sh script: "npm ci"
+        }
+      }
     }
+    stage('Build') {
+      parallel {
+        stage('Default') {
+          steps {
+            nodejs(nodeJSInstallationName: 'node') {
+              sh script: "npm run test:tools", label: "Test Tools"
+              sh script: "node_modules/.bin/commitlint --from origin/master", label: "Lint Commit Message(s)"
+              sh script: "node tools/scripts/ci-format-check.js $BRANCH_NAME", label: "Check Code Formatting"
+             // sh script: "node tools/scripts/ci-lint.js $BRANCH_NAME", label: "Lint Code"
+              //sh script: "node tools/scripts/ci-test.js $BRANCH_NAME", label: "Test Code"
+              //sh script: "node tools/scripts/ci-e2e.js $BRANCH_NAME", label: "E2E Test Code"
+            }
+          }
+        }
+        stage('Design System') {
+          steps {
+            nodejs(nodeJSInstallationName: 'node') {
+              sh script: "node tools/scripts/ci-design-system-docs-check.js", label: "Check Documentation"
+              sh script: "npm run ng -- run shared-ui-design-system:build-storybook --docs-mode", label: "Build Code"
+            }
+          }
+        }
+        stage ('Docs') {
+          steps {
+            nodejs(nodeJSInstallationName: 'node') {
+              sh script: "npm run ng -- run website:build-docusaurus"
+            }
+          }
+        }
+      }
+    }
+    stage('Copy Artifact to Test') {
+      when {
+        anyOf {
+          branch 'master'
+        }
+      }
+      steps {
+        sh script: "aws s3 rm --recursive s3://${s3BucketName}/ACCESS-PORTAL-DEV/dist_artifacts_latest/", label: "Clean Destination Folder"
+        sh script: "aws s3 sync dist/ s3://${s3BucketName}/ACCESS-PORTAL-DEV/dist_artifacts_latest", label: "Copy Artifact To Destination Folder"
+        sh script: "sudo rm -rf /home/jenkins/app04d1/dist/test/*", label: "Clean EFS Folder"
+        sh script: "sudo aws s3 cp s3://${s3BucketName}/ACCESS-PORTAL-DEV/dist_artifacts_latest/apps/ /home/jenkins/app04d1/dist/test/apps/ --recursive", label: "Copy from Destination to EFS"
+      }
+    }
+    stage('Copy Artifact to Staging') {
+      when {
+        anyOf {
+          branch 'test-qa1'
+          // expression { BRANCH_NAME ==~ /^\d+\.\d+\.(\d+|x)$/ }
+        }
+      }*/
+      steps {
+        script {
+        sh "ls -la"
+
+        // def latestTAG= "git describe --tags 'git rev-list --tags --max-count=1'"
+        // sh "echo ${latestTag}"
+        // sh "pwd && ls -lart"
+        // sh "sudo aws s3api put-object --bucket ss01-prod-jenkins-bucket  --key ACCESS-PORTAL-QA/QA-BUILDS/${latestTag}/"
+        // sh "sudo aws s3 sync dist/ s3://${s3BucketName}/ACCESS-PORTAL-QA/QA-BUILDS/${latestTag}/"
+        // sh "sudo aws s3 rm --recursive s3://${s3BucketName}/ACCESS-PORTAL-QA/dist_artifacts_latest/"
+        // sh "sudo aws s3 cp s3://${s3BucketName}/ACCESS-PORTAL-QA/dist_artifacts_latest/${latestTag}/ s3://${s3BucketName}/ACCESS-PORTAL-QA/dist_artifacts_latest/ --recursive "
+                }
+
+      }
+    }
+  }
+  post {
+    always {
+      archiveArtifacts artifacts: 'dist/**/*'
+      cleanWs()
+    }
+  }
 }
