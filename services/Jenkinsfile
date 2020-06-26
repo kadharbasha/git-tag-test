@@ -84,7 +84,7 @@ pipeline {
       steps {
         script {
         sh "ls -la"
-        sh "git describe --tags 'git rev-list --tags --max-count=1'"
+        sh "git rev-list --tags --max-count=1"
         // def latestTAG= "git describe --tags 'git rev-list --tags --max-count=1'"
         // sh "echo ${latestTag}"
         // sh "pwd && ls -lart"
