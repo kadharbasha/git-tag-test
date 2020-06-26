@@ -98,7 +98,6 @@ pipeline {
       }
     }*/
     stage('release') {
-     sh "git tag"
      when {
        tag 'v1.1.5'
      }
