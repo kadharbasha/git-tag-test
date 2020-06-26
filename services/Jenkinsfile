@@ -97,6 +97,15 @@ pipeline {
 
       }
     }
+    stage('release') {
+     when {
+       tag 'v1.1.*'
+     }
+     steps {
+       echo "Building $BRANCH_NAME"
+       echo "Building $TAG_NAME"
+     }
+  }
   }
   post {
     always {
