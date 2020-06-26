@@ -9,3 +9,4 @@ RUN mkdir test13
 RUN mkdir test29
 RUN mkdir test25
 RUN mkdir test24
+RUN echo test test
