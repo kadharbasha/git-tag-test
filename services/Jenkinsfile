@@ -1,116 +1,85 @@
-#!/usr/bin/env groovy
+def job = [
+    "dir1",
+    "dir2",
+    "dir3",
+    "dir4",
+    "dir5",
+    "dir4v2",
+    "dir5v2",
+    "dir6",
+    "dir7"
+]
 
-//def s3BucketName = "ss01-prod-jenkins-bucket"
-// def latestTag= "git tag --sort=committerdate | tail -1"
 
 pipeline {
-  agent any
-  /*agent {
-    label 'access-portal-spot-slave'
-  }
-  environment {
-    WORKSPACE = '/home/jenkins/workspace/ACCESS-PORTAL'
-  }*/
-  options {
-    buildDiscarder(logRotator(daysToKeepStr: '30', artifactDaysToKeepStr: '30'))
-  }
-  stages {
-    /*stage('Rebase Pull Request') {
-      steps {
-        nodejs(nodeJSInstallationName: 'node') {
-          sh script: "node tools/scripts/rebase-pr.js $BRANCH_NAME"
-        }
-      }
-    }
-    stage('Install Node Modules') {
-      steps {
-        nodejs(nodeJSInstallationName: 'node') {
-          sh script: "npm ci"
-        }
-      }
-    }
-    stage('Build') {
-      parallel {
-        stage('Default') {
-          steps {
-            nodejs(nodeJSInstallationName: 'node') {
-              sh script: "npm run test:tools", label: "Test Tools"
-              sh script: "node_modules/.bin/commitlint --from origin/master", label: "Lint Commit Message(s)"
-              sh script: "node tools/scripts/ci-format-check.js $BRANCH_NAME", label: "Check Code Formatting"
-             // sh script: "node tools/scripts/ci-lint.js $BRANCH_NAME", label: "Lint Code"
-              //sh script: "node tools/scripts/ci-test.js $BRANCH_NAME", label: "Test Code"
-              //sh script: "node tools/scripts/ci-e2e.js $BRANCH_NAME", label: "E2E Test Code"
-            }
-          }
-        }
-        stage('Design System') {
-          steps {
-            nodejs(nodeJSInstallationName: 'node') {
-              sh script: "node tools/scripts/ci-design-system-docs-check.js", label: "Check Documentation"
-              sh script: "npm run ng -- run shared-ui-design-system:build-storybook --docs-mode", label: "Build Code"
-            }
-          }
-        }
-        stage ('Docs') {
-          steps {
-            nodejs(nodeJSInstallationName: 'node') {
-              sh script: "npm run ng -- run website:build-docusaurus"
-            }
-          }
-        }
-      }
-    }
-    stage('Copy Artifact to Test') {
-      when {
-        anyOf {
-          branch 'master'
-        }
-      }
-      steps {
-        sh script: "aws s3 rm --recursive s3://${s3BucketName}/ACCESS-PORTAL-DEV/dist_artifacts_latest/", label: "Clean Destination Folder"
-        sh script: "aws s3 sync dist/ s3://${s3BucketName}/ACCESS-PORTAL-DEV/dist_artifacts_latest", label: "Copy Artifact To Destination Folder"
-        sh script: "sudo rm -rf /home/jenkins/app04d1/dist/test/*", label: "Clean EFS Folder"
-        sh script: "sudo aws s3 cp s3://${s3BucketName}/ACCESS-PORTAL-DEV/dist_artifacts_latest/apps/ /home/jenkins/app04d1/dist/test/apps/ --recursive", label: "Copy from Destination to EFS"
-      }
-    }*/
-    /*stage('Copy Artifact to Staging') {
-      when {
-        anyOf {
-          branch 'master'
-          //branch 'test-qa1'
-          // expression { BRANCH_NAME ==~ /^\d+\.\d+\.(\d+|x)$/ }
-        }
-      }
-      steps {
-        script {
-        sh "ls -la"
-        def tag = sh(returnStdout: true, script: "git tag --sort version:refname | tail -1").trim()
-        echo "${tag}"
-        // def latestTAG= "git describe --tags 'git rev-list --tags --max-count=1'"
-        // sh "echo ${latestTag}"
-        // sh "pwd && ls -lart"
-        // sh "sudo aws s3api put-object --bucket ss01-prod-jenkins-bucket  --key ACCESS-PORTAL-QA/QA-BUILDS/${latestTag}/"
-        // sh "sudo aws s3 sync dist/ s3://${s3BucketName}/ACCESS-PORTAL-QA/QA-BUILDS/${latestTag}/"
-        // sh "sudo aws s3 rm --recursive s3://${s3BucketName}/ACCESS-PORTAL-QA/dist_artifacts_latest/"
-        // sh "sudo aws s3 cp s3://${s3BucketName}/ACCESS-PORTAL-QA/dist_artifacts_latest/${latestTag}/ s3://${s3BucketName}/ACCESS-PORTAL-QA/dist_artifacts_latest/ --recursive "
+    agent any
+    stages {
+        stage('Fetching Updated Service') {
+            steps{
+                script{
+                    def branches = [:]
+                    for(int i=0; i < job.size(); i++) {
+                    	matches1 = sh (
+			                script: "git diff --name-only HEAD~1 | sort -u | awk -F/ {'print \$2,\$3'} | uniq | grep -x '${job[i]} build'", returnStatus: true
+			            ) == 0
+			            echo "Matches1: $matches1 for Service: ${job[i]}"
+                        if("$matches1"!="false"){
+                            def jobs = "${job[i]}"
+                            branches["Build "+job[i]] = {buildProject(jobs)}
+                        }
+                    }
+                    parallel branches
                 }
-
-      }
-    }*/
-    stage('release') {
-     when {
-       tag 'v1*'
-     }
-     steps {
-       echo "Building $BRANCH_NAME"
-       echo "Building $TAG_NAME"
-     }
-  }
-  }
-  post {
-    always {
-      //archiveArtifacts artifacts: 'dist/**/*'
-      cleanWs()
+            }
+        }
     }
-  }
 }
+
+
+def buildProject(serv) {
+    echo "inbuildproject ${serv}"
+    return {
+        if("${serv}"!="dir4v2" && "${serv}"!="dir5v2"){
+            /*matches1 = sh (
+                script: "git diff --name-only HEAD~1 | sort -u | awk -F/ {'print \$2,\$3'} | uniq | grep -x '${serv} build'", returnStatus: true
+            ) == 0
+            echo "Matches1: $matches1 for Service: ${serv}"
+            if("$matches1"!="false"){*/
+                stage(serv + ' build'){
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE'){
+                        script {
+                            dir ("services/${serv}/cmd") {                                     
+                                sh "ls -la"                                         
+                            }
+                            dir ("services/${serv}") {
+                                sh "docker ps"
+                            }
+                        }    
+                    }
+                }
+            //}
+        }
+        // condition for version 2 services
+        else if("${serv}"=="dir4v2" || "${serv}"=="dir5v2"){
+            redir1 = "${serv}".toString().replaceAll("v2","")
+            /*matches2 = sh (
+                script: "git diff --name-only HEAD~1 | sort -u | awk -F/ {'print \$2,\$3'} | uniq | grep -x '${redir1} v2'", returnStatus: true
+            ) == 0
+            echo "Matches2: $matches2 for Service: ${serv} "
+            if("$matches2"!="false"){*/
+                stage(serv + ' build'){
+                    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE'){
+                        script{
+                            dir ("services/${redir1}/v2/cmd") {                                    
+                                sh "ls -la"                                              
+                            }
+                            dir ("services/${redir1}/v2"){
+                                sh "docker ps"
+                            }    
+                        }
+                    }
+                }
+            //}
+        }
+    }
+} 
